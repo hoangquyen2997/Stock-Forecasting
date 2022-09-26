@@ -1,0 +1,570 @@
+---
+title: "Assignment 3 - Stock Forecasting"
+author: "Quyen Hoang"
+date: '2022-06-09'
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading the Libraries
+
+
+```{r }
+
+library(MLmetrics)
+library(tidyquant)
+library(fpp2)
+
+
+
+options("getSymbols.warning4.0"=FALSE)
+options("getSymbols.yahoo.warning"=FALSE)
+
+
+### Downloading price using quantmod 
+
+#Microsoft
+getSymbols("MSFT", from = '2020-01-01',
+           to = "2022-06-01",warnings = FALSE,
+           auto.assign = TRUE)
+options("getSymbols.warning4.0"=FALSE)
+options("getSymbols.yahoo.warning"=FALSE)
+
+#Google
+
+getSymbols("goog", from = '2020-01-01',
+           to = "2022-06-01",warnings = FALSE,
+           auto.assign = TRUE)
+
+#Facebook
+getSymbols("FB", from = '2020-01-01',
+           to = "2022-06-01",warnings = FALSE,
+           auto.assign = TRUE)
+
+```
+
+## Chart Series
+
+```{r }
+#MSFT
+chart_Series(MSFT, name = "Stock Price of Microsft 1/2020-5/2022")
+#Google
+chart_Series(GOOG, name = "Stock Price of Google 1/2020-5/2022")
+#Facebook
+chart_Series(FB, name = "Stock Price of Facebook 1/2020-5/2022")
+```
+Overall, the stock price of three companies have upward trend until around the end of 2021 when they all started going down significantly. Especially the stock of FB whose price is as half of the peak time in 2021.
+
+## Decompose
+```{r}
+# Getting the Close Price Column
+tsmsft <- Cl(MSFT)
+tsgoog <- Cl(GOOG)
+tsfb<-Cl(FB)
+             
+##Decompose
+#MSFT
+tsmsft1<-ts(tsmsft, start = c(2020,1), end =c(2022,5), frequency=12)
+dc.msft<-decompose(tsmsft1)
+autoplot(dc.msft)+ggtitle("Microsoft - Decomposing of additive time series")
+
+#GOOG
+tsgoog1<-ts(tsgoog, start = c(2020,1), end =c(2022,5), frequency=12)
+dc.goog<-decompose(tsgoog1)
+autoplot(dc.goog)+ggtitle("Google - Decomposing of additive time series")
+#FB
+tsfb1<-ts(tsfb, start = c(2020,1), end =c(2022,5), frequency=12)
+dc.fb<-decompose(tsfb1)
+autoplot(dc.fb)+ggtitle("Facebook - Decomposing of additive time series")
+```
+
+
+```{r}
+
+##Seasonal
+#MSFT
+dc.msft$seasonal
+#GOOG
+dc.goog$seasonal
+#FB
+dc.fb$seasonal
+```
+
+### Microsoft
+Trend: the long term movement of the data. In this plot, we can notice that MSFT stock has upward trend overall. I do not see any significant up trend of this stock. I would say there was just a slight tilt up started in the middle of 2021. 
+Seasonal: The closing price of MSFT tended to get the highest at the end of the year in December and the lowest in May. So overall, according to this pattern, we can say that the right time to sell the stock is at the end of the year (best time is December) and the right time to buy the stock is in the middle of the year (especially May).
+Irregular: 
+
+### GOOG
+Trend: Overall this company has uptrend stock price. Although there was a slight downward within the middle of 2021, it got back to the upward track afterward. 
+Seasonal: There is not much difference in the price of GOOG stock over the year. However, regarding to the pattern, the peak time is in January and the lowest is in May. 
+
+
+### FB
+Trend: In this plot, we can see that Fb stock price's trend was upward in 2020; however, it started going down in 2021 up until now. overall the downtrend is longer than the uptrend. 
+Seasonal:Fb's Stock Price seems to get the highest in July and the bottom in September. So the right time to buy is around September and October while the good time to sell is in July. 
+
+
+## Simple Exponential Smoothing
+
+### MSFT
+#PLot
+```{r}
+#alpha=0.15
+ses.msft1 <- ses(tsmsft, alpha = 0.15,h=90)
+autoplot(ses.msft1)
+m1<-accuracy(ses.msft1)
+#alpha=0.35
+ses.msft2 <- ses(tsmsft, alpha = 0.35,h=90)
+autoplot(ses.msft2)
+m2<-accuracy(ses.msft2)
+#alpha=0.55
+ses.msft3 <- ses(tsmsft, alpha = 0.55,h=90)
+autoplot(ses.msft3)
+m3<-accuracy(ses.msft3)
+#alpha=0.75
+ses.msft4 <- ses(tsmsft, alpha = 0.75,h=90)
+autoplot(ses.msft4)
+m4<-accuracy(ses.msft4)
+
+
+```
+
+
+#Compare Forecast with Actual time series. 
+```{r}
+
+##Accuracy Table
+m<-rbind(m1,m2,m3,m4)
+rownames(m)<-c("Alpha=0.15","Alpha=0.35","Alpha=0.55","Alpha=0.75")
+m
+##Plot
+autoplot(ts(tsmsft))+autolayer(ses.msft2$fitted, series ="0.35")+autolayer(ses.msft3$fitted, series ="0.55")+autolayer(ses.msft4$fitted, series ="0.75")+autolayer(ses.msft1$fitted, series = "0.15")+ggtitle("Exponential Smoothing Plot MSFT Stock")+labs(x="Time", y="Price")
+
+```
+Interpretation: 
+- We can see the forecasting lines are flat  which does not tell anything about the increasing trend as well as the seasonality of the time series
+-  According to the The accuracy tables, we can notice that the model with alpha=0.75 has the lowest error with all index (MSE, MAE, and MAPE). We conclude that alpha=0.75 gives out the best forecasting for all three companies. 
+- Again in the plot, we can see that the Purple line presenting for the forecast with alpha =0.75 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with alpha=0.15
+
+
+### GOOG
+#Plot
+```{r}
+#alpha=0.15
+ses.goog1 <- ses(tsgoog, alpha = 0.15,h=90)
+autoplot(ses.msft1)
+g1<-accuracy(ses.goog1)
+#alpha=0.35
+ses.goog2 <- ses(tsgoog, alpha = 0.35,h=90)
+autoplot(ses.goog1)
+g2<-accuracy(ses.goog1)
+#alpha=0.55
+ses.goog3 <- ses(tsgoog, alpha = 0.55,h=90)
+autoplot(ses.goog3)
+g3<-accuracy(ses.goog2)
+#alpha=0.75
+ses.goog4 <- ses(tsgoog, alpha = 0.75,h=90)
+autoplot(ses.goog4)
+g4<-accuracy(ses.goog4)
+```
+#Compare Forecast with Actual time series. 
+```{r}
+##Accuracy Table
+g<-rbind(g1,g2,g3,g4)
+rownames(g)<-c("Alpha=0.15","Alpha=0.35","Alpha=0.55","Alpha=0.75")
+g
+##Plot
+autoplot(ts(tsgoog))+autolayer(ses.goog2$fitted, series ="0.35")+autolayer(ses.goog3$fitted, series ="0.55")+autolayer(ses.goog4$fitted, series ="0.75")+autolayer(ses.goog1$fitted, series = "0.15")+ggtitle("Exponential Smoothing Plot GooGle Stock")+labs(x="Time", y="Price")
+
+```
+
+Interpretation: 
+- We can see the forecasting lines are flat  which does not tell anything about the increasing trend as well as the seasonality of the time series
+-  According to the The accuracy tables, we can notice that the model with alpha=0.75 has the lowest error with all index (MSE, MAE, and MAPE). We conclude that alpha=0.75 gives out the best forecasting for all three companies. 
+- Again in the plot, we can see that the Purple line presenting for the forecast with alpha =0.75 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with alpha=0.15
+
+
+### Facebook
+```{r}
+#alpha=0.15
+ses.fb1 <- ses(tsfb, alpha = 0.15,h=90)
+autoplot(ses.fb1)
+f1<-accuracy(ses.fb1)
+#alpha=0.35
+ses.fb2 <- ses(tsfb, alpha = 0.35,h=90)
+autoplot(ses.fb1)
+f2<-accuracy(ses.fb1)
+#alpha=0.55
+ses.fb3 <- ses(tsfb, alpha = 0.55,h=90)
+autoplot(ses.fb3)
+f3<-accuracy(ses.fb2)
+#alpha=0.75
+ses.fb4 <- ses(tsfb, alpha = 0.75,h=90)
+autoplot(ses.fb4)
+f4<-accuracy(ses.fb4)
+```
+#Compare Forecast with Actual time series. 
+```{r}
+##Accuracy Table
+f<-rbind(f1,f2,f3,f4)
+rownames(f)<-c("Alpha=0.15","Alpha=0.35","Alpha=0.55","Alpha=0.75")
+f
+##Plot
+autoplot(ts(tsfb))+autolayer(ses.fb2$fitted, series ="0.35")+autolayer(ses.fb3$fitted, series ="0.55")+autolayer(ses.fb4$fitted, series ="0.75")+autolayer(ses.fb1$fitted, series = "0.15")+ggtitle("Exponential Smoothing Plot FB Stock")+labs(x="Time", y="Price")
+```
+
+### Comments for the three companies: 
+ - Simple Exponential Smoothing: We can see the forecasting lines are flat  which does not tell anything about the increasing trend as well as the seasonality of the time series
+ -  According to the The accuracy tables, we can notice that the model with alpha=0.75 has the lowest error with all index (MSE, MAE, and MAPE). We conclude that alpha=0.75 gives out the best forecasting for all three companies. 
+Again in the plot, we can see that the Purple line presenting for the forecast with alpha =0.75 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with alpha=0.15
+
+## Double Exponential Smoothing. 
+
+###MSFT
+#Plot
+```{r}
+##Double Exponential Smoothing
+#alpha=0.75, beta=0.15
+holt.msft1<-holt(tsmsft,h=10,alpha=0.75, beta=0.15)
+autoplot(holt.msft1)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.15")
+mh1<-accuracy(holt.msft1)
+summary(holt.msft1)
+#alpha=0.75, beta=0.45
+holt.msft2<-holt(tsmsft,h=10,alpha=0.75, beta=0.45)
+autoplot(holt.msft2)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.45")
+mh2<-accuracy(holt.msft2)
+#alpha=0.75, beta=0.75
+holt.msft3<-holt(tsmsft,h=10,alpha=0.75, beta=0.75)
+autoplot(holt.msft3)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.75")
+mh3<-accuracy(holt.msft3)
+
+
+
+```
+
+Looking at the forecasting lines, we can tell that there is an increase in the trend of the stock price, which is partly show the actual pattern of the real time series. We are still looking for the seasonal factor. 
+
+#Compare The actual with Forecasting Time Series
+```{r}
+## Accuracy table
+mh<-rbind(mh1, mh2, mh3)
+rownames(mh)<-c("alpha=0.75, beta=0.15", "alpha=0.75, beta=0.45", "alpha=0.75, beta=0.75")
+mh
+## Plot
+autoplot(ts(tsmsft))+autolayer(holt.msft2$fitted, series ="0.45")+autolayer(holt.msft3$fitted, series ="0.75")+autolayer(holt.msft1$fitted, series = "0.15")
+```
+According to the accuracy table which compare the metrics of 3 models, we can see that model with alpha=0.55 and beta=0.15 yields the lowest error. We decided that this on generate the best forecasting. 
+Again in this plot, we can see that the Blue line presenting for the forecast with beta =0.15 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with beta=0.45
+
+### GOOG
+```{r}
+##Double Exponential Smoothing
+#alpha=0.75, beta=0.15
+holt.goog1<-holt(tsgoog,h=10,alpha=0.75, beta=0.15)
+autoplot(holt.goog1)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.15")
+gh1<-accuracy(holt.goog1)
+summary(holt.goog1)
+#alpha=0.75, beta=0.45
+holt.goog2<-holt(tsgoog,h=10,alpha=0.75, beta=0.45)
+autoplot(holt.goog2)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.45")
+gh2<-accuracy(holt.goog2)
+#alpha=0.75, beta=0.75
+holt.goog3<-holt(tsgoog,h=10,alpha=0.75, beta=0.75)
+autoplot(holt.goog3)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.75")
+gh3<-accuracy(holt.goog3)
+
+
+```
+
+```{r}
+## Accuracy table
+gh<-rbind(gh1, gh2, gh3)
+rownames(gh)<-c("alpha=0.75, beta=0.15", "alpha=0.75, beta=0.45", "alpha=0.75, beta=0.75")
+gh
+## Plot
+autoplot(ts(tsgoog))+autolayer(holt.goog2$fitted, series ="0.45")+autolayer(holt.goog3$fitted, series ="0.75")+autolayer(holt.goog1$fitted, series = "0.15")
+```
+Interpretation: 
+- We can see the forecasting lines are flat  which does not tell anything about the increasing trend as well as the seasonality of the time series
+-  According to the The accuracy tables, we can notice that the model with alpha=0.75 has the lowest error with all index (MSE, MAE, and MAPE). We conclude that alpha=0.75 gives out the best forecasting for all three companies. 
+- Again in the plot, we can see that the Purple line presenting for the forecast with alpha =0.75 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with alpha=0.15
+
+
+
+## Facebook
+```{r}
+##Double Exponential Smoothing
+#alpha=0.75, beta=0.15
+holt.fb1<-holt(tsfb,h=10,alpha=0.75, beta=0.15)
+autoplot(holt.fb1)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.15")
+fh1<-accuracy(holt.fb1)
+summary(holt.fb1)
+#alpha=0.75, beta=0.45
+holt.fb2<-holt(tsfb,h=10,alpha=0.75, beta=0.45)
+autoplot(holt.fb2)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.45")
+fh2<-accuracy(holt.fb2)
+#alpha=0.75, beta=0.75
+holt.fb3<-holt(tsfb,h=10,alpha=0.75, beta=0.75)
+autoplot(holt.fb3)+ggtitle("Forecasts from Holt's method with alpha=0.75 and beta=0.75")
+fh3<-accuracy(holt.fb3)
+
+```
+```{r}
+## Accuracy table
+fh<-rbind(fh1, fh2, fh3)
+rownames(fh)<-c("alpha=0.75, beta=0.15", "alpha=0.75, beta=0.45", "alpha=0.75, beta=0.75")
+fh
+## Plot
+autoplot(ts(tsfb))+autolayer(holt.fb2$fitted, series ="0.45")+autolayer(holt.fb3$fitted, series ="0.75")+autolayer(holt.fb1$fitted, series = "0.15")
+
+```
+Interpretation: 
+- We can see the forecasting lines are flat  which does not tell anything about the increasing trend as well as the seasonality of the time series
+-  According to the The accuracy tables, we can notice that the model with alpha=0.75 has the lowest error with all index (MSE, MAE, and MAPE). We conclude that alpha=0.75 gives out the best forecasting for all three companies. 
+- Again in the plot, we can see that the Purple line presenting for the forecast with alpha =0.75 is the closest to the black line which is the actual data. In contrast, the farthest is the red line which is of the forecasting with alpha=0.15
+
+
+## Triple Exponential Smoothing. 
+
+### MSFT
+```{r}
+##Automatically selected 
+y<-ts(tsmsft, frequency = 12)
+ets.msft1<-ets(y,model="ZZZ", alpha=0.75)
+fc1<-forecast(ets.msft1)
+autoplot(forecast(ets.msft1), h=5)+ggtitle("Triple Exponential Smoothing")
+
+tm1<-accuracy(fc1)
+
+##Multiplicative
+ets.msft2<-ets(ts(tsmsft, frequency = 12),model="MAM",alpha=0.75)
+autoplot(ets.msft2)+ggtitle("Triple Exponential Smoothing")
+fc2<-forecast(ets.msft2,h=5)
+tm2<-accuracy(fc2)
+
+
+### Additive
+ets.msft3<-ets(ts(tsmsft, frequency = 12),model="AAA",alpha=0.75)
+autoplot(ets.msft3)
+fc3<-forecast(ets.msft3,h=5)
+autoplot(fc3)
+tm3<-accuracy(fc3)
+
+```
+
+##Compare forecasting and actual time series
+```{r}
+#Accuracy table
+tm<-rbind(tm1,tm2,tm3)
+tm
+rownames(tm)<-c("phi=0.8","phi=0.8073, gamma=1e-04","phi=0.8, gamma=0.00714")
+
+
+#Plot
+autoplot(ts(tsmsft, frequency = 12))+autolayer(fc1$fitted, series ="phi=0.8")+autolayer(fc2$fitted, series ="phi=0.8073, gamma=1e-04")+autolayer(fc3$fitted, series = "phi=0.8, gamma=0.00714")
+
+
+```
+As we can see there is not much difference in the error of different models. The errors fluctuate within 0.3 unit values. 
+
+
+
+### GOOGLE
+
+```{r}
+##Automatically selected 
+
+ets.goog1<-ets(ts(tsgoog, frequency = 12),model="ZZZ", alpha=0.75)
+gfc1<-forecast(ets.goog1)
+autoplot(forecast(ets.goog1), h=5)+ggtitle("Triple Exponential Smoothing")
+
+tg1<-accuracy(gfc1)
+
+##Multiplicative
+ets.goog2<-ets(ts(tsgoog, frequency = 12),model="MAM",alpha=0.75)
+autoplot(ets.goog2)+ggtitle("Triple Exponential Smoothing")
+gfc2<-forecast(ets.goog2,h=5)
+tg2<-accuracy(gfc2)
+
+
+### Additive
+ets.goog3<-ets(ts(tsgoog, frequency = 12),model="AAA",alpha=0.75)
+autoplot(ets.goog3)
+gfc3<-forecast(ets.goog3,h=5)
+summary(gfc3)
+autoplot(gfc3)
+tg3<-accuracy(gfc3)
+
+```
+```{r}
+#Accuracy table
+tg<-rbind(tg1,tg2,tg3)
+tg
+rownames(tg)<-c("phi=0.8","phi=0.8073, gamma=1e-04","phi=0.8, gamma=0.00714")
+
+
+#Plot
+autoplot(ts(tsgoog, frequency = 12))+autolayer(gfc1$fitted, series ="phi=0.8")+autolayer(gfc2$fitted, series ="phi=0.8073, gamma=1e-04")+autolayer(gfc3$fitted, series = "phi=0.8, gamma=0.00714")
+```
+
+### Facebook
+
+```{r}
+##Automatically selected 
+
+ets.fb1<-ets(ts(tsfb, frequency = 12),model="ZZZ", alpha=0.75)
+ffc1<-forecast(ets.fb1)
+autoplot(forecast(ets.fb1), h=5)+ggtitle("Triple Exponential Smoothing")
+
+tf1<-accuracy(ffc1)
+
+##Multiplicative
+ets.fb2<-ets(ts(tsfb, frequency = 12),model="MAM",alpha=0.75)
+autoplot(ets.fb2)+ggtitle("Triple Exponential Smoothing")
+ffc2<-forecast(ets.fb2,h=5)
+tf2<-accuracy(ffc2)
+
+
+### Additive
+ets.fb3<-ets(ts(tsfb, frequency = 12),model="AAA",alpha=0.75)
+autoplot(ets.fb3)
+ffc3<-forecast(ets.fb3,h=5)
+autoplot(ffc3)
+tf3<-accuracy(ffc3)
+
+```
+```{r}
+#Accuracy table
+tf<-rbind(tf1,tf2,tf3)
+tf
+rownames(tf)<-c("phi=0.8","phi=0.8073, gamma=1e-04","phi=0.8, gamma=0.00714")
+
+
+#Plot
+autoplot(ts(tsfb, frequency = 12))+autolayer(ffc1$fitted, series ="phi=0.8")+autolayer(ffc2$fitted, series ="phi=0.8073, gamma=1e-04")+autolayer(ffc3$fitted, series = "phi=0.8, gamma=0.00714")
+```
+## Compare the accuracy of 3 methods
+
+```{r}
+#MSFT
+compare.msft<-rbind(m4, mh1,tm3)
+rownames(compare.msft)<-c("Simple", "Double","Triple")
+compare.msft
+#Google
+compare.goog<-rbind(g4, gh1,tg3)
+rownames(compare.goog)<-c("Simple", "Double","Triple")
+compare.goog
+#Facebook
+
+compare.fb<-rbind(f4, fh1,tf3)
+rownames(compare.fb)<-c("Simple", "Double","Triple")
+compare.fb
+
+```
+## Forecasting short-term and long-term stock price
+
+```{r}
+#Facebook
+ffc6<-forecast(ets.fb3,h=6)
+z1<-data.frame(ffc6$upper)
+ffc24<-forecast(ets.fb3,h=24)
+z<-data.frame(ffc24$upper)
+
+
+#Google
+gfc6<-forecast(ets.goog3,h=6)
+w1<-data.frame(gfc6$upper)
+gfc24<-forecast(ets.goog3,h=24)
+autoplot(gfc24)+ggtitle("GG-Forecasting Next 2 years STock Price")
+w<-data.frame(gfc24$upper)
+
+#Microsoft
+fc6<-forecast(ets.msft3,h=6)
+t1<-data.frame(fc6$upper)
+fc24<-forecast(ets.msft3,h=24)
+t<-data.frame(fc24$upper)
+
+```
+
+## Regression model
+##MSFT
+```{r}
+
+df1<-data.frame(tsmsft)
+df1$Period<-c(1:608)   
+#Check Na Values. 
+sum(is.na(tsmsft))
+
+#Linear Regression model
+m.lm.model<-lm(MSFT.Close~Period, df1)
+summary(m.lm.model)
+#Plot actual time series and linear regession
+ggplot(df1, aes(x=Period, y=MSFT.Close))+geom_line()+geom_smooth(method = 'lm')
+##Linearity Assumtions
+plot(m.lm.model)
+
+#Accuracy
+preds<-predict(m.lm.model, data=df$MSFT.Close)
+ml<-accuracy(m.lm.model)
+
+```
+##GOOGLE
+```{r}
+library(car)
+df2<-data.frame(tsgoog)
+df2$Period<-c(1:608)   
+#Check Na Values. 
+sum(is.na(tsgoog))
+
+#Linear Regression model
+g.lm.model<-lm(GOOG.Close~Period, df2)
+summary(g.lm.model)
+#Plot actual time series and linear regession
+ggplot(df2, aes(x=Period, y=GOOG.Close))+geom_line()+geom_smooth(method = 'lm')
+##Linearity Assumtions
+plot(g.lm.model)
+
+#Accuracy
+preds<-predict(g.lm.model, data=df$GOOG.Close)
+gl<-accuracy(g.lm.model)
+
+
+```
+##Facebook
+
+```{r}
+
+df3<-data.frame(tsfb)
+df3$Period<-c(1:608)   
+#Check Na Values. 
+sum(is.na(tsfb))
+
+#Linear Regression model
+f.lm.model<-lm(FB.Close~Period, df3) 
+
+
+durbinWatsonTest(f.lm.model)
+summary(f.lm.model)
+#Plot actual time series and linear regession
+ggplot(df3, aes(x=Period, y=FB.Close))+geom_line()+geom_smooth(method = 'lm')
+#Linearity Assumtions
+plot(f.lm.model)
+
+#Accuracy
+preds<-predict(f.lm.model, data=df$FB.Close)
+fl<-accuracy(f.lm.model)
+
+
+
+compare.regression<-rbind(ml,gl,fl)
+rownames(compare.regression)<-c("MST","GOOGLE","FACEBOOK")
+compare.regression
+```
+
+
+
+
